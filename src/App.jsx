@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { storage } from './storage.js';
 import { getHoy, uid } from './utils.js';
 import { C, ActionSheet, Modal, Input, Btn, Avatar } from './components/ui.jsx';
+import { Icon } from './components/icons.jsx';
 import VistaHoy from './views/VistaHoy.jsx';
 import VistaHabitos from './views/VistaHabitos.jsx';
 import VistaEntrenamiento, { ModalSesion } from './views/VistaEntrenamiento.jsx';
@@ -31,28 +32,14 @@ function useStore(clave, valorInicial) {
   return [estado, setEstado];
 }
 
-// Iconos SVG simples para la nav (trazos, estilo limpio)
-function Icono({ tipo, activo }) {
-  const col = activo ? C.ink : C.textFaint;
-  const props = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: col, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
-  switch (tipo) {
-    case 'hoy':     return <svg {...props}><rect x="3" y="4" width="18" height="18" rx="3" /><path d="M3 10h18M8 2v4M16 2v4" /></svg>;
-    case 'habitos': return <svg {...props}><path d="M20 6L9 17l-5-5" /></svg>;
-    case 'entrena': return <svg {...props}><path d="M6 7v10M18 7v10M4 9v6M20 9v6M6 12h12" /></svg>;
-    case 'stats':   return <svg {...props}><path d="M3 3v18h18M7 15v3M12 9v9M17 6v12" /></svg>;
-    default:        return null;
-  }
-}
-
 // Barra de navegación inferior: 4 pestañas + FAB central
 function NavBar({ vistaActual, onCambiar, onFab }) {
   const items = [
-    { id: 'hoy',     label: 'Hoy' },
-    { id: 'habitos', label: 'Hábitos' },
-    { id: 'entrena', label: 'Entrena' },
-    { id: 'stats',   label: 'Stats' },
+    { id: 'hoy',     label: 'Hoy',     icon: 'calendar' },
+    { id: 'habitos', label: 'Hábitos', icon: 'checkCircle' },
+    { id: 'entrena', label: 'Entrena', icon: 'dumbbell' },
+    { id: 'stats',   label: 'Stats',   icon: 'chart' },
   ];
-  // Insertamos el FAB en el centro (entre item 2 y 3)
   const izq = items.slice(0, 2);
   const der = items.slice(2);
 
@@ -64,8 +51,8 @@ function NavBar({ vistaActual, onCambiar, onFab }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', padding: '8px 4px', gap: 4,
       }}>
-        <Icono tipo={item.id} activo={activo} />
-        <span style={{ fontSize: 10, fontWeight: activo ? 700 : 500, color: activo ? C.ink : C.textFaint }}>{item.label}</span>
+        <Icon name={item.icon} size={23} color={activo ? C.amberDark : C.textFaint} strokeWidth={activo ? 2.2 : 1.9} />
+        <span style={{ fontSize: 10, fontWeight: activo ? 700 : 500, color: activo ? C.text : C.textFaint }}>{item.label}</span>
       </button>
     );
   };
@@ -77,18 +64,17 @@ function NavBar({ vistaActual, onCambiar, onFab }) {
       display: 'flex', alignItems: 'center', zIndex: 200,
       maxWidth: 560, margin: '0 auto',
       padding: '6px 8px calc(6px + env(safe-area-inset-bottom, 0))',
-      borderRadius: '20px 20px 0 0',
+      borderRadius: '22px 22px 0 0',
     }}>
       {izq.map(item => <Tab key={item.id} item={item} />)}
 
       {/* FAB central */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
         <button onClick={onFab} style={{
-          width: 56, height: 56, borderRadius: '50%', background: C.ink,
-          border: '4px solid ' + C.surface, color: '#fff', fontSize: 30, lineHeight: 1,
-          cursor: 'pointer', boxShadow: C.shadowLg, marginTop: -28,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 300,
-        }}>+</button>
+          width: 58, height: 58, borderRadius: '50%', background: C.amber,
+          border: '4px solid ' + C.surface, cursor: 'pointer', boxShadow: C.shadowLg, marginTop: -30,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}><Icon name="plus" size={26} color={C.ink} strokeWidth={2.4} /></button>
       </div>
 
       {der.map(item => <Tab key={item.id} item={item} />)}
@@ -100,7 +86,7 @@ function NavBar({ vistaActual, onCambiar, onFab }) {
 function ModalNombre({ nombreInicial, onGuardar, onClose, primeraVez }) {
   const [nombre, setNombre] = useState(nombreInicial || '');
   return (
-    <Modal titulo={primeraVez ? '¡Bienvenido/a! 👋' : 'Tu nombre'} onClose={primeraVez ? () => {} : onClose} size="sm">
+    <Modal titulo={primeraVez ? 'Bienvenido/a' : 'Tu nombre'} onClose={primeraVez ? () => {} : onClose} size="sm">
       <p style={{ fontSize: 14, color: C.textMut, marginBottom: 16 }}>
         ¿Cómo quieres que te salude la app?
       </p>
@@ -145,9 +131,9 @@ export default function App() {
 
   // Opciones del FAB
   const opcionesFab = [
-    { emoji: '⭐', color: C.sage, label: 'Nuevo hábito', desc: 'Crear un buen hábito', onClick: () => { setVista('habitos'); setAccionPendiente({ tipo: 'habito', t: Date.now() }); } },
-    { emoji: '💪', color: C.yellow, label: 'Registrar entrenamiento', desc: 'Anotar una sesión', onClick: () => { setVista('entrena'); setAccionPendiente({ tipo: 'entreno', t: Date.now() }); } },
-    { emoji: '🚫', color: C.pink, label: 'Hábito a romper', desc: 'Algo que quieres dejar', onClick: () => { setVista('habitos'); setAccionPendiente({ tipo: 'malo', t: Date.now() }); } },
+    { icon: 'star', color: C.sage, iconColor: C.success, label: 'Nuevo hábito', desc: 'Crear un buen hábito', onClick: () => { setVista('habitos'); setAccionPendiente({ tipo: 'habito', t: Date.now() }); } },
+    { icon: 'dumbbell', color: C.amberSoft, iconColor: C.amberDark, label: 'Registrar entrenamiento', desc: 'Anotar una sesión', onClick: () => { setVista('entrena'); setAccionPendiente({ tipo: 'entreno', t: Date.now() }); } },
+    { icon: 'ban', color: C.blush, iconColor: C.danger, label: 'Hábito a romper', desc: 'Algo que quieres dejar', onClick: () => { setVista('habitos'); setAccionPendiente({ tipo: 'malo', t: Date.now() }); } },
   ];
 
   const renderVista = () => {

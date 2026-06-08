@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getHoy, uid } from '../utils.js';
-import { C, Btn, Campo, Input, Textarea, Modal, SectionHeader, EmptyState } from '../components/ui.jsx';
+import { C, Btn, Campo, Input, Textarea, Modal, EmptyState, Card, PASTEL_TEXT } from '../components/ui.jsx';
 
 const HOY = getHoy();
 
@@ -15,37 +15,24 @@ function ModalMaloHabito({ mh, onGuardar, onClose }) {
   return (
     <Modal titulo={mh ? 'Editar hábito a romper' : 'Registrar hábito a romper'} onClose={onClose}>
       <div style={{
-        background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.1)',
-        borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#c08080',
+        background: C.surfaceAlt, borderRadius: 14, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: C.textMut, lineHeight: 1.6,
       }}>
         Para romper un mal hábito: hazlo <strong>invisible</strong>, <strong>poco atractivo</strong>, <strong>difícil</strong> e <strong>insatisfactorio</strong>.
       </div>
 
       <Campo label="¿Qué hábito quieres eliminar?" required>
-        <Input
-          value={form.nombre}
-          onChange={e => set('nombre', e.target.value)}
-          placeholder="ej. Revisar el móvil al despertar"
-        />
+        <Input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="ej. Revisar el móvil al despertar" />
       </Campo>
 
       <Campo label="¿Cuál es el detonante? (¿qué lo provoca?)">
-        <Input
-          value={form.detonante}
-          onChange={e => set('detonante', e.target.value)}
-          placeholder="ej. Aburrimiento, estrés, llegar a casa"
-        />
-        <div style={{ fontSize: 11, color: '#555', marginTop: 5 }}>
+        <Input value={form.detonante} onChange={e => set('detonante', e.target.value)} placeholder="ej. Aburrimiento, estrés, llegar a casa" />
+        <div style={{ fontSize: 11, color: C.textMut, marginTop: 5 }}>
           Identificar el detonante es el primer paso para hacerlo invisible.
         </div>
       </Campo>
 
       <Campo label="Plan de sustitución (¿qué harás en su lugar?)">
-        <Textarea
-          value={form.sustitucion}
-          onChange={e => set('sustitucion', e.target.value)}
-          placeholder="ej. Cuando sienta el impulso, daré un paseo de 5 minutos o leeré una página"
-        />
+        <Textarea value={form.sustitucion} onChange={e => set('sustitucion', e.target.value)} placeholder="ej. Cuando sienta el impulso, daré un paseo de 5 minutos o leeré una página" />
       </Campo>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
@@ -63,7 +50,6 @@ function MaloHabitoCard({ mh, onEditar, onEliminar, onRecaida }) {
   const [confirmando, setConfirmando] = useState(false);
 
   const diasSin = Math.max(0, Math.round((new Date(HOY) - new Date(mh.inicioConteo || HOY)) / 86_400_000));
-  const color = diasSin > 30 ? C.green : diasSin > 14 ? C.teal : diasSin > 7 ? C.yellow : diasSin > 0 ? C.orange : C.red;
 
   const handleRecaida = () => {
     if (confirmando) {
@@ -76,82 +62,78 @@ function MaloHabitoCard({ mh, onEditar, onEliminar, onRecaida }) {
   };
 
   const getMensajeRacha = () => {
-    if (diasSin === 0) return { texto: 'Hoy es el primer día. ¡Cada gran racha empieza aquí!', color: C.orange };
-    if (diasSin === 1) return { texto: '¡Un día! No falles mañana — esa es la única regla.', color: C.orange };
-    if (diasSin >= 30) return { texto: `¡Increíble! ${diasSin} días sin caer. Ya es parte de ti.`, color: C.green };
-    if (diasSin >= 7) return { texto: `${diasSin} días. Lo estás haciendo genial 🌟`, color: C.yellow };
+    if (diasSin === 0) return 'Hoy es el primer día. ¡Cada gran racha empieza aquí!';
+    if (diasSin === 1) return '¡Un día! No falles mañana — esa es la única regla.';
+    if (diasSin >= 30) return `¡Increíble! ${diasSin} días sin caer. Ya es parte de ti.`;
+    if (diasSin >= 7) return `${diasSin} días. Lo estás haciendo genial 🌟`;
     return null;
   };
 
   const msg = getMensajeRacha();
 
   return (
-    <div style={{
-      background: '#131313', border: '1px solid #1e1414', borderRadius: 14, marginBottom: 12, overflow: 'hidden',
-    }}>
+    <Card style={{ marginBottom: 12, padding: 0, overflow: 'hidden' }}>
       <div onClick={() => setExpandido(!expandido)} style={{ padding: '16px', cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Contador días */}
           <div style={{
-            width: 56, height: 56, borderRadius: 14, background: '#0f0f0f',
+            width: 56, height: 56, borderRadius: 16, background: C.pink,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, border: `1px solid ${color}30`,
+            flexShrink: 0,
           }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{diasSin}</span>
-            <span style={{ fontSize: 9, color: '#555', marginTop: 1 }}>días</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: PASTEL_TEXT[C.pink], lineHeight: 1 }}>{diasSin}</span>
+            <span style={{ fontSize: 9, color: PASTEL_TEXT[C.pink], opacity: 0.7, marginTop: 1 }}>días</span>
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>🚫 {mh.nombre}</div>
-            <div style={{ fontSize: 12, color: '#666', marginTop: 3 }}>
-              Mejor racha: <strong style={{ color: '#888' }}>{mh.mejorRacha || 0}</strong> días
+            <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>🚫 {mh.nombre}</div>
+            <div style={{ fontSize: 12, color: C.textMut, marginTop: 3 }}>
+              Mejor racha: <strong style={{ color: C.text }}>{mh.mejorRacha || 0}</strong> días
               {(mh.historialRecaidas || []).length > 0 &&
                 ` · ${mh.historialRecaidas.length} recaída${mh.historialRecaidas.length > 1 ? 's' : ''}`}
             </div>
           </div>
-          <span style={{ color: '#444', fontSize: 14 }}>{expandido ? '▲' : '▼'}</span>
+          <span style={{ color: C.textFaint, fontSize: 14 }}>{expandido ? '▲' : '▼'}</span>
         </div>
 
         {msg && (
           <div style={{
-            marginTop: 10, padding: '8px 12px', background: `${msg.color}0d`,
-            borderRadius: 8, fontSize: 13, color: msg.color,
+            marginTop: 10, padding: '8px 12px', background: C.surfaceAlt,
+            borderRadius: 10, fontSize: 13, color: diasSin >= 7 ? PASTEL_TEXT[C.sage] : C.streak,
           }}>
-            {msg.texto}
+            {msg}
           </div>
         )}
       </div>
 
       {expandido && (
-        <div style={{ padding: '0 16px 16px', borderTop: '1px solid #1a1a1a' }}>
+        <div style={{ padding: '0 16px 16px', borderTop: `1px solid ${C.line}` }}>
           {mh.detonante && (
-            <div style={{ fontSize: 13, color: '#777', marginBottom: 8 }}>
+            <div style={{ fontSize: 13, color: C.textMut, marginBottom: 8, marginTop: 12 }}>
               ⚡ Detonante: {mh.detonante}
             </div>
           )}
           {mh.sustitucion && (
-            <div style={{ fontSize: 13, color: '#4a7a5a', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: PASTEL_TEXT[C.sage], marginBottom: 12 }}>
               💡 En su lugar: {mh.sustitucion}
             </div>
           )}
 
-          {/* Historial recaídas */}
           {(mh.historialRecaidas || []).length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#555', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: 11, color: C.textMut, marginBottom: 6, fontWeight: 600 }}>
                 Historial de recaídas
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {mh.historialRecaidas.slice(-5).map((f, i) => (
                   <span key={i} style={{
-                    fontSize: 11, background: '#1a0f0f', color: '#f87171',
-                    padding: '2px 8px', borderRadius: 6,
+                    fontSize: 11, background: C.pink, color: PASTEL_TEXT[C.pink],
+                    padding: '2px 8px', borderRadius: 8,
                   }}>
                     {f.split('-').reverse().join('/')}
                   </span>
                 ))}
                 {mh.historialRecaidas.length > 5 && (
-                  <span style={{ fontSize: 11, color: '#555' }}>+{mh.historialRecaidas.length - 5} más</span>
+                  <span style={{ fontSize: 11, color: C.textMut }}>+{mh.historialRecaidas.length - 5} más</span>
                 )}
               </div>
             </div>
@@ -166,29 +148,32 @@ function MaloHabitoCard({ mh, onEditar, onEliminar, onRecaida }) {
           </div>
 
           {confirmando && (
-            <div style={{ marginTop: 10, fontSize: 12, color: '#888' }}>
+            <div style={{ marginTop: 10, fontSize: 12, color: C.textMut }}>
               No pasa nada. La clave es no fallar <strong>dos veces seguidas</strong>. ¿Registrar recaída?
             </div>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
-export default function VistaMalosHabitos({ malosHabitos, setMalosHabitos }) {
+// Componente embebible: el contenido de "Romper" dentro de Hábitos
+export default function VistaMalosHabitos({ malosHabitos, setMalosHabitos, triggerNuevo }) {
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
+
+  // Abrir modal de nuevo cuando cambia triggerNuevo (FAB)
+  useEffect(() => {
+    if (triggerNuevo) { setEditando(null); setModal(true); }
+  }, [triggerNuevo]);
 
   const guardar = datos => {
     if (editando) {
       setMalosHabitos(prev => prev.map(h => h.id === editando.id ? { ...h, ...datos } : h));
     } else {
       setMalosHabitos(prev => [...prev, {
-        ...datos, id: uid(),
-        inicioConteo: HOY,
-        mejorRacha: 0,
-        historialRecaidas: [],
+        ...datos, id: uid(), inicioConteo: HOY, mejorRacha: 0, historialRecaidas: [],
       }]);
     }
     setModal(false);
@@ -215,17 +200,14 @@ export default function VistaMalosHabitos({ malosHabitos, setMalosHabitos }) {
   };
 
   return (
-    <div style={{ paddingBottom: 80 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800 }}>Hábitos a Romper</h1>
-        <Btn variant="danger" onClick={() => { setEditando(null); setModal(true); }}>+ Añadir</Btn>
-      </div>
-
+    <div>
       <div style={{
-        background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.12)',
-        borderRadius: 12, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#c08080', lineHeight: 1.6,
+        background: C.surfaceAlt, borderRadius: 14, padding: '12px 16px', marginBottom: 16,
+        fontSize: 13, color: C.textMut, lineHeight: 1.6,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
-        💡 Las 4 leyes inversas: hazlo <strong>invisible</strong>, <strong>poco atractivo</strong>, <strong>difícil</strong> e <strong>insatisfactorio</strong>.
+        <span>💡 Hazlo <strong>invisible</strong>, <strong>poco atractivo</strong>, <strong>difícil</strong> e <strong>insatisfactorio</strong>.</span>
+        <Btn variant="danger" small onClick={() => { setEditando(null); setModal(true); }} style={{ flexShrink: 0 }}>+ Añadir</Btn>
       </div>
 
       {malosHabitos.length === 0 ? (
@@ -247,11 +229,7 @@ export default function VistaMalosHabitos({ malosHabitos, setMalosHabitos }) {
       )}
 
       {modal && (
-        <ModalMaloHabito
-          mh={editando}
-          onGuardar={guardar}
-          onClose={() => { setModal(false); setEditando(null); }}
-        />
+        <ModalMaloHabito mh={editando} onGuardar={guardar} onClose={() => { setModal(false); setEditando(null); }} />
       )}
     </div>
   );

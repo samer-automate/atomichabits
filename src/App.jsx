@@ -233,7 +233,7 @@ function AppInterna() {
         key={vista}
         style={{
           maxWidth: 560, margin: '0 auto',
-          padding: '20px 16px 96px', minHeight: '100vh',
+          padding: 'calc(64px + env(safe-area-inset-top, 0px)) 16px 96px', minHeight: '100vh',
           animation: 'fadeUp 0.2s ease',
         }}
       >

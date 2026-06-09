@@ -8,12 +8,12 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "serve -s dist -l tcp://0.0.0.0:${PORT:-3000}"
+    "start": "node server/index.js"
   },
   "dependencies": {
+    "express": "^4.21.2",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "serve": "^14.2.6"
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { storage } from './storage.js';
 import { getHoy, uid } from './utils.js';
 import { C, ActionSheet, Modal, Input, Btn, Avatar } from './components/ui.jsx';
@@ -10,7 +10,7 @@ import VistaEstadisticas from './views/VistaEstadisticas.jsx';
 
 const HOY = getHoy();
 
-// Hook de estado persistente que usa window.storage (o localStorage como fallback)
+// Lee del caché de storage (ya inicializado) de forma síncrona
 function useStore(clave, valorInicial) {
   const [estado, setEstadoRaw] = useState(() => {
     try {
@@ -24,12 +24,32 @@ function useStore(clave, valorInicial) {
   const setEstado = useCallback((actualizador) => {
     setEstadoRaw(prev => {
       const nuevo = typeof actualizador === 'function' ? actualizador(prev) : actualizador;
-      try { storage.setItem(clave, JSON.stringify(nuevo)); } catch {}
+      storage.setItem(clave, JSON.stringify(nuevo));
       return nuevo;
     });
   }, [clave]);
 
   return [estado, setEstado];
+}
+
+// Pantalla de carga mientras se inicializa el storage
+function Cargando() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: C.bg, gap: 16 }}>
+      <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.amber, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="dumbbell" size={22} color={C.ink} />
+      </div>
+      <span style={{ fontSize: 14, color: C.textMut }}>Cargando…</span>
+    </div>
+  );
+}
+
+// Wrapper que inicializa storage antes de montar la app
+export default function App() {
+  const [listo, setListo] = useState(false);
+  useEffect(() => { storage.init().then(() => setListo(true)); }, []);
+  if (!listo) return <Cargando />;
+  return <AppInterna />;
 }
 
 // Barra de navegación inferior: 4 pestañas + FAB central
@@ -100,7 +120,7 @@ function ModalNombre({ nombreInicial, onGuardar, onClose, primeraVez }) {
   );
 }
 
-export default function App() {
+function AppInterna() {
   const [vista, setVista] = useState('hoy');
   const [modalSesionExterna, setModalSesionExterna] = useState(null);
   const [sheetAbierto, setSheetAbierto] = useState(false);

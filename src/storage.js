@@ -1,43 +1,34 @@
-// Capa de almacenamiento persistente
-// Usa window.storage si está disponible (artifacts de Claude),
-// si no, crea un objeto compatible sobre localStorage.
+// En producción lee/escribe via /api/data (servidor Node).
+// En desarrollo sin servidor cae a localStorage.
 
-const createStorage = () => {
-  if (typeof window !== 'undefined' && window.storage && typeof window.storage.getItem === 'function') {
-    return window.storage;
-  }
-  // Polyfill sobre localStorage para entorno de navegador estándar
-  return {
-    getItem: (key) => {
-      try { return localStorage.getItem(key); } catch { return null; }
-    },
-    setItem: (key, value) => {
-      try { localStorage.setItem(key, value); } catch {}
-    },
-    removeItem: (key) => {
-      try { localStorage.removeItem(key); } catch {}
-    },
-  };
-};
+let cache = null; // null = no inicializado, {} = vacío
 
-export const storage = createStorage();
-
-export function useStore(clave, valorInicial) {
-  // Se usa dentro de App.jsx a través de useState + useEffect
-  const leer = () => {
+export const storage = {
+  /** Carga todos los datos del servidor una sola vez. Llamar antes de renderizar la app. */
+  async init() {
     try {
-      const v = storage.getItem(clave);
-      return v != null ? JSON.parse(v) : valorInicial;
+      const res = await fetch('/api/data');
+      cache = res.ok ? await res.json() : {};
     } catch {
-      return valorInicial;
+      cache = {};
     }
-  };
+    return cache;
+  },
 
-  const escribir = (valor) => {
-    try {
-      storage.setItem(clave, JSON.stringify(valor));
-    } catch {}
-  };
+  /** Lectura síncrona (solo después de init). */
+  getItem(key) {
+    if (cache !== null) return cache[key] ?? null;
+    try { return localStorage.getItem(key); } catch { return null; }
+  },
 
-  return { leer, escribir };
-}
+  /** Escritura: actualiza caché local + persiste en servidor (async, fire-and-forget). */
+  setItem(key, value) {
+    if (cache !== null) cache[key] = value;
+    try { localStorage.setItem(key, value); } catch {}
+    fetch(`/api/data/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value }),
+    }).catch(() => {});
+  },
+};

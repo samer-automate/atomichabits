@@ -6,16 +6,44 @@ import { Icon, ICONOS_GYM } from '../components/icons.jsx';
 const HOY = getHoy();
 const HOY_DOW = getDow(HOY);
 
+function ejToSets(ej) {
+  if (Array.isArray(ej.sets)) return ej.sets;
+  const n = Math.max(1, +(ej.series) || 1);
+  return Array.from({ length: n }, () => ({ reps: ej.reps || '', peso: ej.peso || '' }));
+}
+
 function ModalPlan({ plan, onGuardar, onClose }) {
   const [form, setForm] = useState({
     nombre: plan?.nombre || '', icono: plan?.icono || 'dumbbell',
-    ejercicios: plan?.ejercicios?.map(e => ({ ...e })) || [],
+    ejercicios: plan?.ejercicios?.map(e => ({ id: e.id || uid(), nombre: e.nombre || '', sets: ejToSets(e) })) || [],
   });
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  const addEj = () => set('ejercicios', [...form.ejercicios, { id: uid(), nombre: '', series: 3, reps: 10, peso: '' }]);
-  const updEj = (i, k, v) => { const ejs = [...form.ejercicios]; ejs[i] = { ...ejs[i], [k]: v }; set('ejercicios', ejs); };
+  const addEj = () => set('ejercicios', [...form.ejercicios, { id: uid(), nombre: '', sets: [{ reps: '', peso: '' }] }]);
   const remEj = i => set('ejercicios', form.ejercicios.filter((_, idx) => idx !== i));
+
+  const updNombre = (i, v) => {
+    const ejs = [...form.ejercicios]; ejs[i] = { ...ejs[i], nombre: v }; set('ejercicios', ejs);
+  };
+  const updSet = (ejIdx, si, k, v) => {
+    const ejs = [...form.ejercicios];
+    const sets = [...ejs[ejIdx].sets];
+    sets[si] = { ...sets[si], [k]: v };
+    ejs[ejIdx] = { ...ejs[ejIdx], sets };
+    set('ejercicios', ejs);
+  };
+  const addSet = ejIdx => {
+    const ejs = [...form.ejercicios];
+    const last = ejs[ejIdx].sets[ejs[ejIdx].sets.length - 1] || { reps: '', peso: '' };
+    ejs[ejIdx] = { ...ejs[ejIdx], sets: [...ejs[ejIdx].sets, { reps: last.reps, peso: last.peso }] };
+    set('ejercicios', ejs);
+  };
+  const remSet = (ejIdx, si) => {
+    const ejs = [...form.ejercicios];
+    if (ejs[ejIdx].sets.length <= 1) return;
+    ejs[ejIdx] = { ...ejs[ejIdx], sets: ejs[ejIdx].sets.filter((_, idx) => idx !== si) };
+    set('ejercicios', ejs);
+  };
 
   return (
     <Modal titulo={plan ? 'Editar plan' : 'Nuevo plan de entrenamiento'} onClose={onClose} size="lg">
@@ -39,22 +67,47 @@ function ModalPlan({ plan, onGuardar, onClose }) {
 
       <Campo label="Ejercicios">
         {form.ejercicios.map((ej, i) => (
-          <div key={ej.id || i} style={{ background: C.surfaceAlt, borderRadius: 14, padding: 12, marginBottom: 8 }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <Input value={ej.nombre} onChange={e => updEj(i, 'nombre', e.target.value)} placeholder="Nombre del ejercicio" style={{ flex: 2 }} />
+          <div key={ej.id} style={{ background: C.surfaceAlt, borderRadius: 14, padding: 12, marginBottom: 10 }}>
+            {/* Nombre del ejercicio + botón eliminar ejercicio */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <Input value={ej.nombre} onChange={e => updNombre(i, e.target.value)} placeholder="Nombre del ejercicio" style={{ flex: 1 }} />
               <button onClick={() => remEj(i)} style={{
-                background: C.blush, border: 'none', borderRadius: 10, padding: '0 14px', cursor: 'pointer', flexShrink: 0,
+                background: C.blush, border: 'none', borderRadius: 10, padding: '0 12px', cursor: 'pointer', flexShrink: 0,
                 display: 'flex', alignItems: 'center',
               }}><Icon name="x" size={16} color={C.danger} /></button>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[['series', 'Series'], ['reps', 'Reps'], ['peso', 'Peso (kg)']].map(([k, lbl]) => (
-                <div key={k} style={{ flex: 1 }}>
-                  <label style={{ fontSize: 10, color: C.textMut, display: 'block', marginBottom: 3 }}>{lbl}</label>
-                  <Input type="number" value={ej[k]} onChange={e => updEj(i, k, e.target.value)} placeholder={k === 'peso' ? '—' : undefined} style={{ padding: '8px 10px', background: C.surface }} />
-                </div>
-              ))}
+
+            {/* Cabecera de columnas de series */}
+            <div style={{ display: 'grid', gridTemplateColumns: '24px 1fr 1fr 28px', gap: 6, marginBottom: 4 }}>
+              <span />
+              <span style={{ fontSize: 10, color: C.textMut, fontWeight: 600, textAlign: 'center' }}>Reps</span>
+              <span style={{ fontSize: 10, color: C.textMut, fontWeight: 600, textAlign: 'center' }}>Peso (kg)</span>
+              <span />
             </div>
+
+            {/* Filas de series */}
+            {ej.sets.map((s, si) => (
+              <div key={si} style={{ display: 'grid', gridTemplateColumns: '24px 1fr 1fr 28px', gap: 6, marginBottom: 5, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: C.textMut, fontWeight: 700, textAlign: 'center' }}>{si + 1}</span>
+                <Input type="number" value={s.reps} onChange={e => updSet(i, si, 'reps', e.target.value)}
+                  placeholder="—" style={{ padding: '6px 8px', fontSize: 13, background: C.surface, textAlign: 'center' }} />
+                <Input type="number" value={s.peso} onChange={e => updSet(i, si, 'peso', e.target.value)}
+                  placeholder="—" style={{ padding: '6px 8px', fontSize: 13, background: C.surface, textAlign: 'center' }} />
+                <button onClick={() => remSet(i, si)} disabled={ej.sets.length <= 1} style={{
+                  width: 28, height: 28, borderRadius: 8, border: 'none',
+                  cursor: ej.sets.length <= 1 ? 'default' : 'pointer',
+                  background: ej.sets.length <= 1 ? 'transparent' : C.blush,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon name="x" size={13} color={ej.sets.length <= 1 ? C.textFaint : C.danger} />
+                </button>
+              </div>
+            ))}
+
+            <button onClick={() => addSet(i)} style={{
+              marginTop: 4, width: '100%', background: 'none', border: `1px dashed ${C.amberDark}`,
+              borderRadius: 8, padding: '5px 0', fontSize: 12, color: C.amberDark, cursor: 'pointer', fontWeight: 600,
+            }}>+ Añadir serie</button>
           </div>
         ))}
         <Btn variant="ghost" small onClick={addEj} style={{ marginTop: 4 }}>+ Añadir ejercicio</Btn>
@@ -72,35 +125,87 @@ function ModalSesion({ plan, onGuardar, onClose }) {
   const [duracion, setDuracion] = useState('');
   const [notas, setNotas] = useState('');
   const [ejercicios, setEjercicios] = useState(
-    (plan.ejercicios || []).map(e => ({ ...e, seriesReal: e.series, repsReal: e.reps, pesoReal: e.peso, completado: false }))
+    (plan.ejercicios || []).map(e => ({
+      ...e,
+      completado: false,
+      sets: ejToSets(e).map(s => ({ reps: s.reps || '', peso: s.peso || '' })),
+    }))
   );
 
-  const toggleEj = i => { const ejs = [...ejercicios]; ejs[i] = { ...ejs[i], completado: !ejs[i].completado }; setEjercicios(ejs); };
-  const updEj = (i, k, v) => { const ejs = [...ejercicios]; ejs[i] = { ...ejs[i], [k]: v }; setEjercicios(ejs); };
+  const toggleEj = i => {
+    const ejs = [...ejercicios];
+    ejs[i] = { ...ejs[i], completado: !ejs[i].completado };
+    setEjercicios(ejs);
+  };
+
+  const updSet = (ejIdx, setIdx, k, v) => {
+    const ejs = [...ejercicios];
+    const sets = [...ejs[ejIdx].sets];
+    sets[setIdx] = { ...sets[setIdx], [k]: v };
+    ejs[ejIdx] = { ...ejs[ejIdx], sets };
+    setEjercicios(ejs);
+  };
+
+  const addSet = ejIdx => {
+    const ejs = [...ejercicios];
+    const lastSet = ejs[ejIdx].sets[ejs[ejIdx].sets.length - 1] || { reps: '', peso: '' };
+    ejs[ejIdx] = { ...ejs[ejIdx], sets: [...ejs[ejIdx].sets, { reps: lastSet.reps, peso: lastSet.peso }] };
+    setEjercicios(ejs);
+  };
+
+  const remSet = (ejIdx, setIdx) => {
+    const ejs = [...ejercicios];
+    if (ejs[ejIdx].sets.length <= 1) return;
+    ejs[ejIdx] = { ...ejs[ejIdx], sets: ejs[ejIdx].sets.filter((_, si) => si !== setIdx) };
+    setEjercicios(ejs);
+  };
 
   return (
     <Modal titulo={`Registrar · ${plan.nombre}`} onClose={onClose} size="lg">
       <p style={{ fontSize: 13, color: C.textMut, marginBottom: 16 }}>
-        Marca los ejercicios completados. Ajusta los valores reales si difieren del plan.
+        Marca los ejercicios completados y registra el peso y repeticiones de cada serie.
       </p>
 
       {ejercicios.map((ej, i) => (
         <div key={ej.id || i} style={{
-          background: ej.completado ? C.amberSoft : C.surfaceAlt, borderRadius: 14, padding: '10px 12px', marginBottom: 8, transition: 'all 0.2s',
+          background: ej.completado ? C.amberSoft : C.surfaceAlt, borderRadius: 14, padding: '10px 12px', marginBottom: 8, transition: 'background 0.2s',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="checkbox" checked={ej.completado} onChange={() => toggleEj(i)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: C.amber }} />
             <span style={{ fontWeight: 600, flex: 1, fontSize: 14, color: C.text }}>{ej.nombre}</span>
-            <span style={{ fontSize: 12, color: C.textMut }}>{ej.seriesReal}×{ej.repsReal}{ej.pesoReal ? ` · ${ej.pesoReal}kg` : ''}</span>
+            <span style={{ fontSize: 12, color: C.textMut }}>{ej.sets.length} serie{ej.sets.length !== 1 ? 's' : ''}</span>
           </div>
+
           {ej.completado && (
-            <div style={{ display: 'flex', gap: 6, paddingLeft: 28, marginTop: 8 }}>
-              {[['seriesReal', 'Series'], ['repsReal', 'Reps'], ['pesoReal', 'Peso']].map(([k, lbl]) => (
-                <div key={k} style={{ flex: 1 }}>
-                  <label style={{ fontSize: 10, color: C.textMut, display: 'block', marginBottom: 2 }}>{lbl}</label>
-                  <Input type="number" value={ej[k]} onChange={e => updEj(i, k, e.target.value)} style={{ padding: '6px 8px', fontSize: 13, background: C.surface }} />
+            <div style={{ marginTop: 10, paddingLeft: 4 }}>
+              {/* Cabecera de columnas */}
+              <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 1fr 28px', gap: 6, marginBottom: 4 }}>
+                <span />
+                <span style={{ fontSize: 10, color: C.textMut, fontWeight: 600, textAlign: 'center' }}>Reps</span>
+                <span style={{ fontSize: 10, color: C.textMut, fontWeight: 600, textAlign: 'center' }}>Peso (kg)</span>
+                <span />
+              </div>
+
+              {ej.sets.map((s, si) => (
+                <div key={si} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 1fr 28px', gap: 6, marginBottom: 5, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: C.textMut, fontWeight: 700, textAlign: 'center' }}>{si + 1}</span>
+                  <Input type="number" value={s.reps} onChange={e => updSet(i, si, 'reps', e.target.value)}
+                    placeholder="—" style={{ padding: '6px 8px', fontSize: 13, background: C.surface, textAlign: 'center' }} />
+                  <Input type="number" value={s.peso} onChange={e => updSet(i, si, 'peso', e.target.value)}
+                    placeholder="—" style={{ padding: '6px 8px', fontSize: 13, background: C.surface, textAlign: 'center' }} />
+                  <button onClick={() => remSet(i, si)} disabled={ej.sets.length <= 1} style={{
+                    width: 28, height: 28, borderRadius: 8, border: 'none', cursor: ej.sets.length <= 1 ? 'default' : 'pointer',
+                    background: ej.sets.length <= 1 ? 'transparent' : C.blush, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name="x" size={13} color={ej.sets.length <= 1 ? C.textFaint : C.danger} />
+                  </button>
                 </div>
               ))}
+
+              <button onClick={() => addSet(i)} style={{
+                marginTop: 4, width: '100%', background: 'none', border: `1px dashed ${C.amberDark}`,
+                borderRadius: 8, padding: '5px 0', fontSize: 12, color: C.amberDark, cursor: 'pointer', fontWeight: 600,
+              }}>+ Añadir serie</button>
             </div>
           )}
         </div>
@@ -120,7 +225,7 @@ function ModalSesion({ plan, onGuardar, onClose }) {
         <Btn onClick={() => onGuardar({
           planId: plan.id, planNombre: plan.nombre, planIcono: plan.icono,
           duracion: duracion ? +duracion : null, notas,
-          ejerciciosRealizados: ejercicios.filter(e => e.completado).map(e => ({ nombre: e.nombre, series: e.seriesReal, reps: e.repsReal, peso: e.pesoReal })),
+          ejerciciosRealizados: ejercicios.filter(e => e.completado).map(e => ({ nombre: e.nombre, sets: e.sets })),
         })}>Guardar sesión</Btn>
       </div>
     </Modal>
@@ -143,12 +248,21 @@ function PlanCard({ plan, onEditar, onEliminar, onRegistrar }) {
       </div>
       {expandido && (
         <div style={{ padding: '0 16px 14px', borderTop: `1px solid ${C.line}` }}>
-          {(plan.ejercicios || []).map((ej, i) => (
-            <div key={ej.id || i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${C.line}`, fontSize: 13, color: C.text }}>
-              <span>{ej.nombre}</span>
-              <span style={{ color: C.textMut }}>{ej.series}×{ej.reps}{ej.peso ? ` · ${ej.peso}kg` : ''}</span>
-            </div>
-          ))}
+          {(plan.ejercicios || []).map((ej, i) => {
+            const sets = ejToSets(ej);
+            return (
+              <div key={ej.id || i} style={{ paddingTop: 10, paddingBottom: 8, borderBottom: `1px solid ${C.line}` }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: C.text, marginBottom: 4 }}>{ej.nombre}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {sets.map((s, si) => (
+                    <span key={si} style={{ fontSize: 12, background: C.amberSoft, color: C.amberDark, borderRadius: 8, padding: '2px 8px', fontWeight: 600 }}>
+                      {si + 1}{s.reps ? ` · ${s.reps}r` : ''}{s.peso ? ` · ${s.peso}kg` : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Btn variant="ghost" small onClick={onEditar}>Editar</Btn>
             <Btn variant="danger" small onClick={onEliminar}>Eliminar</Btn>
@@ -175,12 +289,21 @@ function SesionCard({ sesion }) {
       </div>
       {expandido && (
         <div style={{ padding: '0 16px 14px', borderTop: `1px solid ${C.line}` }}>
-          {(sesion.ejerciciosRealizados || []).map((ej, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${C.line}`, fontSize: 13, color: C.text }}>
-              <span>{ej.nombre}</span>
-              <span style={{ color: C.amberDark }}>{ej.series}×{ej.reps}{ej.peso ? ` · ${ej.peso}kg` : ''}</span>
-            </div>
-          ))}
+          {(sesion.ejerciciosRealizados || []).map((ej, i) => {
+            const sets = ej.sets || (ej.series != null ? [{ reps: ej.reps, peso: ej.peso }] : []);
+            return (
+              <div key={i} style={{ paddingTop: 10, paddingBottom: 8, borderBottom: `1px solid ${C.line}` }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: C.text, marginBottom: 5 }}>{ej.nombre}</div>
+                {sets.map((s, si) => (
+                  <div key={si} style={{ display: 'flex', gap: 12, fontSize: 12, color: C.textMut, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: C.amberDark, minWidth: 16 }}>{si + 1}</span>
+                    {s.reps ? <span>{s.reps} reps</span> : null}
+                    {s.peso ? <span>{s.peso} kg</span> : null}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
           {sesion.notas && <div style={{ marginTop: 10, fontSize: 13, color: C.textMut }}>{sesion.notas}</div>}
         </div>
       )}
